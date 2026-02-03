@@ -1,0 +1,56 @@
+# Build
+bin/
+obj/
+out/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider
+.idea/
+
+# VS Code
+.vscode/
+
+# NuGet
+*.nupkg
+packages/
+# No ignore .csproj/PackageReference, solo la carpeta packages local
+
+# ASP.NET Core / IIS
+appsettings.*.json
+appsettings.local.json
+launchSettings.json
+
+# Logs
+*.log
+Logs/
+log/
+*.tlg
+
+# Respaldo
+*.bak
+*.old
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# JetBrains Rider caches
+.idea/
+*.sln.iml
+
+# Rider and VSCode settings
+*.DotSettings.user
+
+# Entity Framework Migrations
+Migrations/
+
+# Node/npm if you have front-end
+node_modules/
+dist/
