@@ -1,0 +1,41 @@
+version: '3.9'
+
+services:
+
+  api:
+    # image: mcr.microsoft.com/dotnet/aspnet:8.0
+    # container_name: dotnet_api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3897:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__TimelapseDB=Server=sqlserver;Database=TimelapseDB;User Id=sa;Password=yourStrong(!)Password;TrustServerCertificate=True;   
+    depends_on:
+      - sqlserver
+    networks:
+      - backend
+    restart: unless-stopped
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-CU21-ubuntu-20.04
+    # container_name: sqlserver quitar nombre contenedor
+    ports:
+      - "7983:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=yourStrong(!)Password
+      - MSSQL_PID=Express
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - backend
+    restart: unless-stopped
+
+networks:
+  backend:
+
+volumes:
+  sqlserver_data:
