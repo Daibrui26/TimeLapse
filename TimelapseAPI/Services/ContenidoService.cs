@@ -1,68 +1,74 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using TimelapseAPI.Models;
+using TimelapseAPI.Models.DTOs;
 using TimelapseAPI.Repositories;
 
 namespace TimelapseAPI.Services
 {
-
     public class ContenidoService : IContenidoService
     {
-        private readonly IContenidoRepository _contenidoRepository;
+        private readonly IContenidoRepository _repo;
+        private readonly IUploadService _uploadService;
 
-        public ContenidoService(IContenidoRepository contenidoRepository)
+        public ContenidoService(IContenidoRepository repo, IUploadService uploadService)
         {
-            _contenidoRepository = contenidoRepository;
+            _repo          = repo;
+            _uploadService = uploadService;
         }
 
-        public async Task<List<Contenido>> GetAllAsync()
-        {
-            return await _contenidoRepository.GetAllAsync();
-        }
+        public Task<List<Contenido>> GetAllAsync()               => _repo.GetAllAsync();
+        public Task<Contenido?> GetByIdAsync(int id)             => _repo.GetByIdAsync(id);
+        public Task<List<Contenido>> GetByCapsulaIdAsync(int id) => _repo.GetByCapsulaIdAsync(id);
 
-        public async Task<Contenido?> GetByIdAsync(int id)
+        // ── Texto ──────────────────────────────────────────────────────────────
+        public async Task<Contenido> CreateTextoAsync(Contenido contenido)
         {
-            return await _contenidoRepository.GetByIdAsync(id);
-        }
-
-        public async Task<Contenido> CreateAsync(Contenido contenido)
-        {
-            // Validaciones básicas antes de crear contenido
-            if (string.IsNullOrWhiteSpace(contenido.Tipo))
-                throw new ArgumentException("El tipo de contenido no puede estar vacío.");
-
             if (string.IsNullOrWhiteSpace(contenido.ContenidoTexto))
-                throw new ArgumentException("El contenido no puede estar vacío.");
+                throw new ArgumentException("El texto no puede estar vacío.");
 
             if (contenido.IdCapsula <= 0)
                 throw new ArgumentException("El IdCapsula debe ser válido.");
 
-            // Si no se asigna fecha, se pone la actual
-            if (contenido.FechaSubida == default)
-                contenido.FechaSubida = DateTime.UtcNow;
+            contenido.Tipo        = "texto";
+            contenido.FechaSubida = DateTime.UtcNow;
 
-            return await _contenidoRepository.CreateAsync(contenido);
+            return await _repo.CreateAsync(contenido);
         }
 
-        public async Task<Contenido?> UpdateAsync(Contenido contenido)
+        // ── Archivo (imagen / vídeo / documento) ───────────────────────────────
+        public async Task<Contenido> CreateArchivoAsync(ContenidoArchivoCreateDTO dto)
         {
-            // Validaciones similares a CreateAsync
-            if (string.IsNullOrWhiteSpace(contenido.Tipo))
-                throw new ArgumentException("El tipo de contenido no puede estar vacío.");
-
-            if (string.IsNullOrWhiteSpace(contenido.ContenidoTexto))
-                throw new ArgumentException("El contenido no puede estar vacío.");
-
-            if (contenido.IdCapsula <= 0)
+            if (dto.IdCapsula <= 0)
                 throw new ArgumentException("El IdCapsula debe ser válido.");
 
-            return await _contenidoRepository.UpdateAsync(contenido);
+            var tiposValidos = new[] { "imagen", "video", "documento" };
+            if (!tiposValidos.Contains(dto.Tipo.ToLower()))
+                throw new ArgumentException("Tipo debe ser: imagen, video o documento.");
+
+            // Subir a Cloudinary → obtenemos la URL
+            var url = await _uploadService.UploadAsync(dto.Archivo);
+
+            var contenido = new Contenido
+            {
+                Tipo        = dto.Tipo.ToLower(),
+                UrlArchivo  = url,
+                FechaSubida = DateTime.UtcNow,
+                IdCapsula   = dto.IdCapsula
+            };
+
+            return await _repo.CreateAsync(contenido);
         }
 
+        // ── Delete ─────────────────────────────────────────────────────────────
         public async Task<bool> DeleteAsync(int id)
         {
-            return await _contenidoRepository.DeleteAsync(id);
+            var contenido = await _repo.GetByIdAsync(id);
+            if (contenido == null) return false;
+
+            // Si tiene archivo en Cloudinary, borrarlo también
+            if (!string.IsNullOrEmpty(contenido.PublicId))
+                await _uploadService.DeleteAsync(contenido.PublicId);
+
+            return await _repo.DeleteAsync(id);
         }
     }
 }

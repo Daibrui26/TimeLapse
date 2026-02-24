@@ -38,8 +38,10 @@ CREATE TABLE Usuario_Capsula (
 CREATE TABLE Contenido (
     Id_Contenido INT IDENTITY(1,1) PRIMARY KEY,
     Tipo NVARCHAR(30),
-    Contenido NVARCHAR(MAX),
+    Contenido NVARCHAR(MAX) NULL,
     Fecha_Subida DATE,
+    url_archivo NVARCHAR(500) NULL,
+    public_id   NVARCHAR(200) NULL,
     Id_Capsula INT,
     CONSTRAINT FK_Contenido_Capsula FOREIGN KEY (Id_Capsula) REFERENCES Capsula(Id_Capsula)
 );
@@ -123,6 +125,7 @@ INSERT INTO Amistad (Id_Usuario1, Id_Usuario2, Estado) VALUES
 (1, 3, 'pendiente'),
 (2, 4, 'aceptada'),
 (3, 4, 'aceptada');
+
 
 
 -- DROPTABLES

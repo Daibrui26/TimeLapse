@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using TimelapseAPI.Models;
+using TimelapseAPI.Models.DTOs;
 using TimelapseAPI.Services;
 
 namespace TimelapseAPI.Controllers
@@ -18,6 +16,7 @@ namespace TimelapseAPI.Controllers
             _contenidoService = contenidoService;
         }
 
+        // GET api/Contenido
         [HttpGet]
         public async Task<ActionResult<List<Contenido>>> GetAll()
         {
@@ -25,7 +24,8 @@ namespace TimelapseAPI.Controllers
             return Ok(lista);
         }
 
-        [HttpGet("{id}")]
+        // GET api/Contenido/{id}
+        [HttpGet("{id:int}")]
         public async Task<ActionResult<Contenido>> GetById(int id)
         {
             var contenido = await _contenidoService.GetByIdAsync(id);
@@ -33,12 +33,22 @@ namespace TimelapseAPI.Controllers
             return Ok(contenido);
         }
 
-        [HttpPost]
-        public async Task<ActionResult<Contenido>> Create([FromBody] Contenido contenido)
+        // GET api/Contenido/capsula/{idCapsula}
+        [HttpGet("capsula/{idCapsula:int}")]
+        public async Task<ActionResult<List<Contenido>>> GetByCapsula(int idCapsula)
+        {
+            var lista = await _contenidoService.GetByCapsulaIdAsync(idCapsula);
+            return Ok(lista);
+        }
+
+        // POST api/Contenido/texto
+        // Body: { "idCapsula": 1, "contenidoTexto": "Querido yo del futuro..." }
+        [HttpPost("texto")]
+        public async Task<ActionResult<Contenido>> CreateTexto([FromBody] Contenido contenido)
         {
             try
             {
-                var nuevo = await _contenidoService.CreateAsync(contenido);
+                var nuevo = await _contenidoService.CreateTextoAsync(contenido);
                 return CreatedAtAction(nameof(GetById), new { id = nuevo.IdContenido }, nuevo);
             }
             catch (ArgumentException ex)
@@ -51,17 +61,16 @@ namespace TimelapseAPI.Controllers
             }
         }
 
-        [HttpPut("{id}")]
-        public async Task<ActionResult<Contenido>> Update(int id, [FromBody] Contenido contenido)
+        // POST api/Contenido/archivo
+        // multipart/form-data: Archivo (IFormFile), IdCapsula (int), Tipo ("imagen"/"video"/"documento")
+        [HttpPost("archivo")]
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<Contenido>> CreateArchivo([FromForm] ContenidoArchivoCreateDTO dto)
         {
-            if (id != contenido.IdContenido)
-                return BadRequest(new { mensaje = "El ID no coincide con el cuerpo de la solicitud." });
-
             try
             {
-                var updated = await _contenidoService.UpdateAsync(contenido);
-                if (updated == null) return NotFound();
-                return Ok(updated);
+                var nuevo = await _contenidoService.CreateArchivoAsync(dto);
+                return CreatedAtAction(nameof(GetById), new { id = nuevo.IdContenido }, nuevo);
             }
             catch (ArgumentException ex)
             {
@@ -73,8 +82,9 @@ namespace TimelapseAPI.Controllers
             }
         }
 
-        [HttpDelete("{id}")]
-        public async Task<ActionResult> Delete(int id)
+        // DELETE api/Contenido/{id}
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Delete(int id)
         {
             var result = await _contenidoService.DeleteAsync(id);
             if (!result) return NotFound(new { mensaje = "No se encontró el contenido con ese ID." });
